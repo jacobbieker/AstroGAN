@@ -205,5 +205,5 @@ class DCGAN():
 
 
 if __name__ == '__main__':
-    dcgan = DCGAN(width=256, batch_size=8, height=256, latent=100, dense=64, num_upscales=2, directory="data/")
+    dcgan = DCGAN(width=256, batch_size=8, height=256, latent=100, dense=32, num_upscales=2, directory="data/")
     dcgan.train(epochs=10000, save_interval=50)
