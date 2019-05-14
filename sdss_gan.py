@@ -20,13 +20,14 @@ import numpy as np
 
 
 class DCGAN():
-    def __init__(self, width=424, height=424, channels=3, directory="", num_upscales=2, batch_size=32):
+    def __init__(self, width=424, height=424, channels=3, directory="", latent=100, dense=128, num_upscales=2, batch_size=32):
         # Input shape
         self.img_rows = width
+        self.dense = dense
         self.img_cols = height
         self.channels = channels
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.latent_dim = 500
+        self.latent_dim = latent
         self.directory = directory
         self.batch_size = batch_size
         self.num_upscales = num_upscales
@@ -75,19 +76,19 @@ class DCGAN():
 
         model = Sequential()
 
-        model.add(Dense(32 * int(self.img_cols/(4**num_upscales)) * int(self.img_rows/(4**num_upscales)), activation="relu", input_dim=self.latent_dim))
-        model.add(Reshape((int(self.img_cols/(4**num_upscales)), int(self.img_rows/(4**num_upscales)), 32)))
+        model.add(Dense(self.dense * int(self.img_cols/(2**num_upscales)) * int(self.img_rows/(2**num_upscales)), activation="relu", input_dim=self.latent_dim))
+        model.add(Reshape((int(self.img_cols/(2**num_upscales)), int(self.img_rows/(2**num_upscales)), self.dense)))
         model.add(UpSampling2D())
         model.add(Conv2D(512, kernel_size=3, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
         model.add(UpSampling2D())
-        if num_upscales >= 1:
+        if num_upscales >= 3:
             model.add(Conv2D(256, kernel_size=3, padding="same"))
             model.add(BatchNormalization(momentum=0.8))
             model.add(Activation("relu"))
             model.add(UpSampling2D())
-        if num_upscales >= 1:
+        if num_upscales >= 4:
             model.add(Conv2D(128, kernel_size=3, padding="same"))
             model.add(BatchNormalization(momentum=0.8))
             model.add(Activation("relu"))
@@ -204,5 +205,5 @@ class DCGAN():
 
 
 if __name__ == '__main__':
-    dcgan = DCGAN(width=256, batch_size=48, height=256, num_upscales=2, directory="data/")
+    dcgan = DCGAN(width=256, batch_size=8, height=256, latent=100, dense=64, num_upscales=2, directory="data/")
     dcgan.train(epochs=10000, save_interval=50)
