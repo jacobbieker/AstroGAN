@@ -75,8 +75,8 @@ class DCGAN():
 
         model = Sequential()
 
-        model.add(Dense(256 * int(self.img_cols/(4**num_upscales)) * int(self.img_rows/(4**num_upscales)), activation="relu", input_dim=self.latent_dim))
-        model.add(Reshape((int(self.img_cols/(4**num_upscales)), int(self.img_rows/(4**num_upscales)), 256)))
+        model.add(Dense(32 * int(self.img_cols/(4**num_upscales)) * int(self.img_rows/(4**num_upscales)), activation="relu", input_dim=self.latent_dim))
+        model.add(Reshape((int(self.img_cols/(4**num_upscales)), int(self.img_rows/(4**num_upscales)), 32)))
         model.add(UpSampling2D())
         model.add(Conv2D(512, kernel_size=3, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
@@ -204,5 +204,5 @@ class DCGAN():
 
 
 if __name__ == '__main__':
-    dcgan = DCGAN(width=256, batch_size=24, height=256, num_upscales=2, directory="data/")
+    dcgan = DCGAN(width=256, batch_size=48, height=256, num_upscales=2, directory="data/")
     dcgan.train(epochs=10000, save_interval=50)
