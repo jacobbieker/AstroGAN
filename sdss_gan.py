@@ -20,7 +20,7 @@ import numpy as np
 
 
 class DCGAN():
-    def __init__(self, width=424, height=424, channels=3, directory="", batch_size=32):
+    def __init__(self, width=424, height=424, channels=3, directory="", num_upscales=2, batch_size=32):
         # Input shape
         self.img_rows = width
         self.img_cols = height
@@ -29,6 +29,7 @@ class DCGAN():
         self.latent_dim = 500
         self.directory = directory
         self.batch_size = batch_size
+        self.num_upscales = num_upscales
 
         optimizer = Adam(0.0002, 0.5)
 
@@ -39,7 +40,7 @@ class DCGAN():
                                    metrics=['accuracy'])
 
         # Build the generator
-        self.generator = self.build_generator()
+        self.generator = self.build_generator(num_upscales=self.num_upscales)
 
         # The generator takes noise as input and generates imgs
         z = Input(shape=(self.latent_dim,))
@@ -70,25 +71,27 @@ class DCGAN():
                                                 class_mode=None)
         return generator
 
-    def build_generator(self):
+    def build_generator(self, num_upscales=2):
 
         model = Sequential()
 
-        model.add(Dense(128 * int(self.img_cols/16) * int(self.img_rows/16), activation="relu", input_dim=self.latent_dim))
-        model.add(Reshape((int(self.img_cols/16), int(self.img_rows/16), 128)))
+        model.add(Dense(128 * int(self.img_cols/(2**num_upscales)) * int(self.img_rows/(2**num_upscales)), activation="relu", input_dim=self.latent_dim))
+        model.add(Reshape((int(self.img_cols/(2**num_upscales)), int(self.img_rows/(2**num_upscales)), 128)))
         model.add(UpSampling2D())
         model.add(Conv2D(512, kernel_size=3, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
         model.add(UpSampling2D())
-        model.add(Conv2D(256, kernel_size=3, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Activation("relu"))
-        model.add(UpSampling2D())
-        model.add(Conv2D(128, kernel_size=3, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Activation("relu"))
-        model.add(UpSampling2D())
+        if num_upscales >= 3:
+            model.add(Conv2D(256, kernel_size=3, padding="same"))
+            model.add(BatchNormalization(momentum=0.8))
+            model.add(Activation("relu"))
+            model.add(UpSampling2D())
+        if num_upscales >= 4:
+            model.add(Conv2D(128, kernel_size=3, padding="same"))
+            model.add(BatchNormalization(momentum=0.8))
+            model.add(Activation("relu"))
+            model.add(UpSampling2D())
         model.add(Conv2D(64, kernel_size=3, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
@@ -201,5 +204,5 @@ class DCGAN():
 
 
 if __name__ == '__main__':
-    dcgan = DCGAN(width=416, batch_size=16, height=416, directory="data/")
+    dcgan = DCGAN(width=208, batch_size=32, height=208, num_upscales=3, directory="data/")
     dcgan.train(epochs=10000, save_interval=50)
