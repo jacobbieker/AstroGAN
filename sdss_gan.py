@@ -147,10 +147,6 @@ class DCGAN():
         #X_train = X_train / 127.5 - 1.
         #X_train = np.expand_dims(X_train, axis=3)
 
-        # Adversarial ground truths
-        valid = np.ones((self.batch_size, 1))
-        fake = np.zeros((self.batch_size, 1))
-
         for epoch in range(epochs):
 
             # ---------------------
@@ -163,8 +159,12 @@ class DCGAN():
             imgs = imgs - 1.
 
             # Sample noise and generate a batch of new images
-            noise = np.random.normal(0, 1, (self.batch_size, self.latent_dim))
+            noise = np.random.normal(0, 1, (imgs.shape[0], self.latent_dim))
             gen_imgs = self.generator.predict(noise)
+
+            # Adversarial ground truths
+            valid = np.ones((imgs.shape[0], 1))
+            fake = np.zeros((imgs.shape[0], 1))
 
             # Train the discriminator (real classified as ones and generated as zeros)
             d_loss_real = self.discriminator.train_on_batch(imgs, valid)
@@ -184,6 +184,11 @@ class DCGAN():
             # If at save interval => save generated image samples
             if epoch % save_interval == 0:
                 self.save_imgs(epoch)
+
+            if epoch % 100 == 0:
+                self.discriminator.save("discriminator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
+                self.generator.save("generator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
+                self.combined.save("combined_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
 
     def save_imgs(self, epoch):
         r, c = 5, 5
@@ -205,5 +210,5 @@ class DCGAN():
 
 
 if __name__ == '__main__':
-    dcgan = DCGAN(width=256, batch_size=8, height=256, latent=100, dense=32, num_upscales=2, directory="data/")
-    dcgan.train(epochs=10000, save_interval=50)
+    dcgan = DCGAN(width=128, batch_size=64, height=128, latent=100, dense=128, num_upscales=3, directory="split/")
+    dcgan.train(epochs=50000, save_interval=50)
