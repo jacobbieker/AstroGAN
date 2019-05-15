@@ -5,7 +5,13 @@ GAN for generating new galaxies from SDSS images, taken from Kaggle's Galaxy Zoo
 """
 
 from __future__ import print_function, division
-
+import tensorflow as tf
+from keras.backend.tensorflow_backend import set_session
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+config.gpu_options.visible_device_list = "0"
+#session = tf.Session(config=config)
+set_session(tf.Session(config=config))
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
@@ -66,7 +72,7 @@ class DCGAN():
         :return:
         """
         datagen = ImageDataGenerator(rescale=1./127.5, horizontal_flip=True, vertical_flip=True,
-                                     #rotation_range=180, height_shift_range=0.25, width_shift_range=0.25,
+                                     rotation_range=180, #height_shift_range=0.1, width_shift_range=0.25,
                                      cval=0., fill_mode='constant')
         generator = datagen.flow_from_directory(directory, target_size=(self.img_rows,self.img_cols), batch_size=self.batch_size, shuffle=True,
                                                 class_mode=None)
@@ -211,5 +217,5 @@ class DCGAN():
 
 
 if __name__ == '__main__':
-    dcgan = DCGAN(width=128, batch_size=128, height=128, latent=100, dense=128, num_upscales=3, directory="data/")
+    dcgan = DCGAN(width=128, batch_size=48, height=128, latent=100, dense=128, num_upscales=3, directory="data/training/")
     dcgan.train(epochs=50000, save_interval=50)
