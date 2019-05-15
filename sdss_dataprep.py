@@ -19,11 +19,11 @@ def move_by_type(solutions, image_dir):
         is_elliptical = solutions['Class11'][index]
         is_spiral = solutions['Class12'][index]
         is_trash = solutions['Class13'][index]
-        if is_spiral > is_elliptical and is_spiral > is_trash:
+        if is_spiral > 0.75:
             copyfile(file, os.path.join(spiral_dir, str(int(id)) + ".jpg"))
-        elif is_elliptical > is_spiral and is_elliptical > is_trash:
+        elif is_elliptical > 0.75:
             copyfile(file, os.path.join(elliptical_dir, str(int(id)) + ".jpg"))
-        else: # Trash biggest
+        elif is_trash > 0.3: # Trash biggest
             copyfile(file, os.path.join(trash_dir, str(int(id)) + ".jpg"))
 
 
@@ -43,8 +43,8 @@ def move_for_nvidia(image_dir, out_dir, res=(512,512)):
         out = im.resize(res)
         out.save(os.path.join(subdir, file), "JPEG")
 
-#move_by_type(datafile, "data/images_training_rev1")
+move_by_type(datafile, "data/images_training_rev1")
 #move_for_nvidia("data/images_training_rev1/spiral", out_dir="spiral_high_res")
 #move_for_nvidia("data/images_training_rev1/elliptical", out_dir="elliptical_high_res")
 #move_for_nvidia("data/images_training_rev1/trash", out_dir="trash_high_res")
-move_for_nvidia("/home/jacob/Development/nvidia_all", "high_res")
+#move_for_nvidia("/home/jacob/Development/nvidia_all", "high_res")

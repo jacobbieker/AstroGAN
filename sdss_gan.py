@@ -141,6 +141,7 @@ class DCGAN():
         # Load the dataset
         # Load it as a generator
         image_gen = self.datagen(self.directory)
+        ran_num = np.random.randint(0,1000)
         #(X_train, _), (_, _) = mnist.load_data()
 
         # Rescale -1 to 1
@@ -186,9 +187,9 @@ class DCGAN():
                 self.save_imgs(epoch)
 
             if epoch % 100 == 0:
-                self.discriminator.save("discriminator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
-                self.generator.save("generator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
-                self.combined.save("combined_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
+                self.discriminator.save("{}_discriminator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
+                self.generator.save("{}_generator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
+                self.combined.save("{}_combined_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
 
     def save_imgs(self, epoch):
         r, c = 5, 5
