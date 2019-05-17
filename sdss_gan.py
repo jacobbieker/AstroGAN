@@ -72,7 +72,7 @@ class DCGAN():
         :return:
         """
         datagen = ImageDataGenerator(rescale=1./127.5, horizontal_flip=True, vertical_flip=True,
-                                     rotation_range=180, #height_shift_range=0.1, width_shift_range=0.25,
+                                     #rotation_range=180, #height_shift_range=0.1, width_shift_range=0.25,
                                      cval=0., fill_mode='constant')
         generator = datagen.flow_from_directory(directory, target_size=(self.img_rows,self.img_cols), batch_size=self.batch_size, shuffle=True,
                                                 class_mode=None)
@@ -85,20 +85,22 @@ class DCGAN():
         model.add(Dense(self.dense * int(self.img_cols/(2**num_upscales)) * int(self.img_rows/(2**num_upscales)), activation="relu", input_dim=self.latent_dim))
         model.add(Reshape((int(self.img_cols/(2**num_upscales)), int(self.img_rows/(2**num_upscales)), self.dense)))
         model.add(UpSampling2D())
+        model.add(Conv2D(1024, kernel_size=3, padding="same"))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(Activation("relu"))
+        model.add(UpSampling2D())
         model.add(Conv2D(512, kernel_size=3, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
         model.add(UpSampling2D())
-        if num_upscales >= 3:
-            model.add(Conv2D(256, kernel_size=3, padding="same"))
-            model.add(BatchNormalization(momentum=0.8))
-            model.add(Activation("relu"))
-            model.add(UpSampling2D())
-        if num_upscales >= 4:
-            model.add(Conv2D(128, kernel_size=3, padding="same"))
-            model.add(BatchNormalization(momentum=0.8))
-            model.add(Activation("relu"))
-            model.add(UpSampling2D())
+        model.add(Conv2D(256, kernel_size=3, padding="same"))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(Activation("relu"))
+        model.add(UpSampling2D())
+        model.add(Conv2D(128, kernel_size=3, padding="same"))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(Activation("relu"))
+        model.add(UpSampling2D())
         model.add(Conv2D(64, kernel_size=3, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
@@ -129,6 +131,14 @@ class DCGAN():
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
         model.add(Conv2D(256, kernel_size=3, strides=1, padding="same"))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(Dropout(0.25))
+        model.add(Conv2D(512, kernel_size=3, strides=2, padding="same"))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(Dropout(0.25))
+        model.add(Conv2D(1024, kernel_size=3, strides=2, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
@@ -209,7 +219,7 @@ class DCGAN():
         cnt = 0
         for i in range(r):
             for j in range(c):
-                axs[i,j].imshow(gen_imgs[cnt, :,:,0], cmap='gray')
+                axs[i,j].imshow(gen_imgs[cnt, :,:,:])
                 axs[i,j].axis('off')
                 cnt += 1
         fig.savefig("images/sdss_%d.png" % epoch)
@@ -217,5 +227,5 @@ class DCGAN():
 
 
 if __name__ == '__main__':
-    dcgan = DCGAN(width=128, batch_size=48, height=128, latent=100, dense=128, num_upscales=3, directory="data/training/")
+    dcgan = DCGAN(width=256, batch_size=16, height=256, latent=100, dense=128, num_upscales=5, directory="only_spiral/")
     dcgan.train(epochs=50000, save_interval=50)

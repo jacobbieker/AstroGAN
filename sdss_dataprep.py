@@ -18,13 +18,15 @@ def move_by_type(solutions, image_dir):
         # now check which broad classification is best
         is_elliptical = solutions['Class11'][index]
         is_spiral = solutions['Class12'][index]
+        is_disk_edge = solutions['Class41'][index]
+        is_bar = solutions['Class31'][index]
         is_trash = solutions['Class13'][index]
-        if is_spiral > 0.75:
-            copyfile(file, os.path.join(spiral_dir, str(int(id)) + ".jpg"))
-        elif is_elliptical > 0.75:
-            copyfile(file, os.path.join(elliptical_dir, str(int(id)) + ".jpg"))
-        elif is_trash > 0.3: # Trash biggest
-            copyfile(file, os.path.join(trash_dir, str(int(id)) + ".jpg"))
+        if is_spiral > 0.7 and is_bar > 0.7 and is_disk_edge > 0.8:
+            copyfile(file, os.path.join("pure_spiral/sp", str(int(id)) + ".jpg"))
+        #elif is_elliptical > 0.9:
+        #    copyfile(file, os.path.join(elliptical_dir, str(int(id)) + ".jpg"))
+        #elif is_trash > 0.3: # Trash biggest
+        #    copyfile(file, os.path.join(trash_dir, str(int(id)) + ".jpg"))
 
 
 def move_for_nvidia(image_dir, out_dir, res=(512,512)):
