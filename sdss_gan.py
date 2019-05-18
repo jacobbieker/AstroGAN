@@ -144,6 +144,7 @@ class DCGAN():
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
         model.add(Flatten())
+        # Add Minibatch discrimination here?
         model.add(Dense(1, activation='sigmoid'))
 
         model.summary()
@@ -233,10 +234,10 @@ class DCGAN():
                 axs[i,j].imshow(gen_imgs[cnt, :,:,:])
                 axs[i,j].axis('off')
                 cnt += 1
-        fig.savefig("images/spiral_latent400_sdss_%d.png" % epoch, dpi=300)
+        fig.savefig("images/four_latent400_sdss_%d.png" % epoch, dpi=300)
         plt.close()
 
 
 if __name__ == '__main__':
-    dcgan = DCGAN(width=256, batch_size=16, height=256, latent=800, dense=256, num_upscales=5, directory="pure_spiral/")
+    dcgan = DCGAN(width=256, batch_size=16, height=256, latent=400, dense=256, num_upscales=5, directory="four/")
     dcgan.train(epochs=50000, save_interval=50)
