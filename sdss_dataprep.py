@@ -21,8 +21,8 @@ def move_by_type(solutions, image_dir):
         is_disk_edge = solutions['Class41'][index]
         is_bar = solutions['Class31'][index]
         is_trash = solutions['Class13'][index]
-        if is_spiral > 0.7 and is_bar > 0.7 and is_disk_edge > 0.8:
-            copyfile(file, os.path.join("pure_spiral/sp", str(int(id)) + ".jpg"))
+        if is_elliptical > 0.8: #and is_bar > 0.7 and is_disk_edge > 0.8:
+            copyfile(file, os.path.join("pure_elip/sp", str(int(id)) + ".jpg"))
         #elif is_elliptical > 0.9:
         #    copyfile(file, os.path.join(elliptical_dir, str(int(id)) + ".jpg"))
         #elif is_trash > 0.3: # Trash biggest
