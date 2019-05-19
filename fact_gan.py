@@ -3,10 +3,13 @@
 GAN for generating new images from FACT eventfiles
 
 """
+import os
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 from factnn.utils.cross_validate import get_chunk_of_data, get_data_generators
 
-directory=  "/home/jacob/iact_events/"
+directory = "/home/jacob/iact_events/"
 gamma_dir = [directory + "gammaFeature/clump5/"]
 proton_dir = [directory + "protonFeature/clump5/"]
 
@@ -20,13 +23,17 @@ from keras.optimizers import Adam
 from keras.preprocessing.image import ImageDataGenerator
 import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
+from multiprocessing import Process, Manager
+
 
 
 import numpy as np
 
+def add_to_list(L, generator, index):
+    L.append(generator[index])
 
 class DCGAN():
-    def __init__(self, width=424, height=424, channels=3, directory="", latent=100, dense=128, num_upscales=2, batch_size=32):
+    def __init__(self, width=424, height=424, channels=1, directory="", latent=100, dense=128, num_upscales=2, batch_size=32):
         # Input shape
         self.img_rows = width
         self.dense = dense
@@ -64,6 +71,8 @@ class DCGAN():
         self.combined = Model(z, valid)
         self.combined.compile(loss='binary_crossentropy', optimizer=optimizer)
 
+        print(self.combined.summary())
+
     def datagen(self, directory):
         """
         Generates the images for the GAN from the SDSS ones
@@ -71,16 +80,11 @@ class DCGAN():
         :param directory:
         :return:
         """
-        datagen = ImageDataGenerator(rescale=1./127.5, horizontal_flip=True, vertical_flip=True,
-                                     #rotation_range=180, #height_shift_range=0.1, width_shift_range=0.25,
-                                     cval=0., fill_mode='constant')
-        generator = datagen.flow_from_directory(directory, target_size=(self.img_rows,self.img_cols), batch_size=self.batch_size, shuffle=True,
-                                                class_mode=None)
 
         train_gen, _, _, _ = get_data_generators(directory=gamma_dir,
-                                                 indicies=(30, 129, 1), rebin=128,
-                                                 batch_size=128, as_channels=True,
-                                                 model_type="Separation")
+                                                 indicies=(30, 129, 1), rebin=self.img_rows,
+                                                 batch_size=self.batch_size, as_channels=True,
+                                                 model_type="Energy")
         return train_gen
 
     def build_generator(self, num_upscales=2):
@@ -90,14 +94,14 @@ class DCGAN():
         model.add(Dense(self.dense * int(self.img_cols/(2**num_upscales)) * int(self.img_rows/(2**num_upscales)), activation="relu", input_dim=self.latent_dim))
         model.add(Reshape((int(self.img_cols/(2**num_upscales)), int(self.img_rows/(2**num_upscales)), self.dense)))
         model.add(UpSampling2D())
-        model.add(Conv2D(1024, kernel_size=3, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Activation("relu"))
-        model.add(UpSampling2D())
-        model.add(Conv2D(512, kernel_size=3, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Activation("relu"))
-        model.add(UpSampling2D())
+        #model.add(Conv2D(1024, kernel_size=3, padding="same"))
+        #model.add(BatchNormalization(momentum=0.8))
+        #model.add(Activation("relu"))
+        #model.add(UpSampling2D())
+        #model.add(Conv2D(512, kernel_size=3, padding="same"))
+        #model.add(BatchNormalization(momentum=0.8))
+        #model.add(Activation("relu"))
+        #model.add(UpSampling2D())
         model.add(Conv2D(256, kernel_size=3, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
@@ -139,14 +143,14 @@ class DCGAN():
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv2D(512, kernel_size=3, strides=2, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dropout(0.25))
-        model.add(Conv2D(1024, kernel_size=3, strides=2, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dropout(0.25))
+        #model.add(Conv2D(512, kernel_size=3, strides=2, padding="same"))
+        #model.add(BatchNormalization(momentum=0.8))
+        #model.add(LeakyReLU(alpha=0.2))
+        #model.add(Dropout(0.25))
+        #model.add(Conv2D(1024, kernel_size=3, strides=2, padding="same"))
+        #model.add(BatchNormalization(momentum=0.8))
+        #model.add(LeakyReLU(alpha=0.2))
+        #model.add(Dropout(0.25))
         model.add(Flatten())
         # Add Minibatch discrimination here?
         model.add(Dense(1, activation='sigmoid'))
@@ -158,17 +162,22 @@ class DCGAN():
 
         return Model(img, validity)
 
+
     def train(self, epochs, save_interval=50):
 
         # Load the dataset
         # Load it as a generator
         image_gen = self.datagen(self.directory)
+
         ran_num = np.random.randint(0,1000)
         #(X_train, _), (_, _) = mnist.load_data()
 
         # Rescale -1 to 1
         #X_train = X_train / 127.5 - 1.
         #X_train = np.expand_dims(X_train, axis=3)
+
+        num_samples = len(image_gen)
+        total = 1
 
         for epoch in range(epochs):
 
@@ -177,7 +186,9 @@ class DCGAN():
             # ---------------------
 
             # Select random images from batch_size
-            imgs, _ = image_gen.next()
+            if epoch >= total*num_samples - 1:
+                image_gen.on_epoch_end()
+            imgs, _ = image_gen[epoch % num_samples]
             # Rescaled between 1 and -1 per batch
             imgs = 2*(imgs - np.min(imgs))/(np.max(imgs)-np.min(imgs))-1
 
@@ -235,13 +246,13 @@ class DCGAN():
         cnt = 0
         for i in range(r):
             for j in range(c):
-                axs[i,j].imshow(gen_imgs[cnt, :,:,:])
+                axs[i,j].imshow(gen_imgs[cnt].reshape((self.img_rows,self.img_rows)))
                 axs[i,j].axis('off')
                 cnt += 1
-        fig.savefig("images/fact_%d.png" % epoch, dpi=300)
+        fig.savefig("images/smallest_fact_%d.png" % epoch, dpi=300)
         plt.close()
 
 
 if __name__ == '__main__':
-    dcgan = DCGAN(width=128, batch_size=16, height=256, latent=400, dense=512, num_upscales=5, directory="four/")
-    dcgan.train(epochs=50000, save_interval=50)
+    dcgan = DCGAN(width=32, batch_size=64, height=32, latent=100, dense=512, num_upscales=3, directory="four/")
+    dcgan.train(epochs=50000, save_interval=200)

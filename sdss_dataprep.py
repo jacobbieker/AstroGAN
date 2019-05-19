@@ -20,9 +20,43 @@ def move_by_type(solutions, image_dir):
         is_spiral = solutions['Class12'][index]
         is_disk_edge = solutions['Class41'][index]
         is_bar = solutions['Class31'][index]
-        is_trash = solutions['Class13'][index]
-        if is_elliptical > 0.8: #and is_bar > 0.7 and is_disk_edge > 0.8:
-            copyfile(file, os.path.join("pure_elip/sp", str(int(id)) + ".jpg"))
+        is_round = solutions['Class71'][index]
+        one_arm = solutions['Class111'][index]
+        two_arm = solutions['Class112'][index]
+        three_arm = solutions['Class113'][index]
+        four_arm = solutions['Class114'][index]
+        five_arm = solutions['Class115'][index]
+        six_arm = solutions['Class116'][index]
+
+        if is_elliptical > 0.7: #and is_bar > 0.7 and is_disk_edge > 0.8:
+            continue
+            if is_round > 0.7:
+                copyfile(file, os.path.join("acgan/round", str(int(id)) + ".jpg"))
+            else:
+                copyfile(file, os.path.join("acgan/elip", str(int(id)) + ".jpg"))
+        if is_spiral > 0.7:
+            if is_disk_edge > 0.7:
+                if one_arm > 0.5:
+                    copyfile(file, os.path.join("acgan/one_arm", str(int(id)) + ".jpg"))
+                if two_arm > 0.5:
+                    copyfile(file, os.path.join("acgan/two_arm", str(int(id)) + ".jpg"))
+                if three_arm > 0.5:
+                    copyfile(file, os.path.join("acgan/three_arm", str(int(id)) + ".jpg"))
+                if four_arm > 0.5:
+                    copyfile(file, os.path.join("acgan/four_arm", str(int(id)) + ".jpg"))
+                if five_arm > 0.5:
+                    copyfile(file, os.path.join("acgan/five_arm", str(int(id)) + ".jpg"))
+                if six_arm > 0.5:
+                    copyfile(file, os.path.join("acgan/six_arm", str(int(id)) + ".jpg"))
+                else:
+                    continue
+                    copyfile(file, os.path.join("acgan/spiral", str(int(id)) + ".jpg"))
+            else:
+                continue
+                copyfile(file, os.path.join("acgan/edge", str(int(id)) + ".jpg"))
+
+
+
         #elif is_elliptical > 0.9:
         #    copyfile(file, os.path.join(elliptical_dir, str(int(id)) + ".jpg"))
         #elif is_trash > 0.3: # Trash biggest

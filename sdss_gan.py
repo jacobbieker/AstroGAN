@@ -86,10 +86,10 @@ class DCGAN():
         model.add(Dense(self.dense * int(self.img_cols/(2**num_upscales)) * int(self.img_rows/(2**num_upscales)), activation="relu", input_dim=self.latent_dim))
         model.add(Reshape((int(self.img_cols/(2**num_upscales)), int(self.img_rows/(2**num_upscales)), self.dense)))
         model.add(UpSampling2D())
-        model.add(Conv2D(1024, kernel_size=3, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Activation("relu"))
-        model.add(UpSampling2D())
+        #model.add(Conv2D(1024, kernel_size=3, padding="same"))
+        #model.add(BatchNormalization(momentum=0.8))
+        #model.add(Activation("relu"))
+        #model.add(UpSampling2D())
         model.add(Conv2D(512, kernel_size=3, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
@@ -139,10 +139,10 @@ class DCGAN():
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv2D(1024, kernel_size=3, strides=2, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dropout(0.25))
+        #model.add(Conv2D(1024, kernel_size=3, strides=2, padding="same"))
+        #model.add(BatchNormalization(momentum=0.8))
+        #model.add(LeakyReLU(alpha=0.2))
+        #model.add(Dropout(0.25))
         model.add(Flatten())
         # Add Minibatch discrimination here?
         model.add(Dense(1, activation='sigmoid'))
@@ -215,9 +215,9 @@ class DCGAN():
                 self.save_imgs(epoch)
 
             if epoch % 100 == 0:
-                self.discriminator.save("{}_discriminator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
-                self.generator.save("{}_generator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
-                self.combined.save("{}_combined_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
+                self.discriminator.save("Elip_{}_discriminator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
+                self.generator.save("Elip_{}_generator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
+                self.combined.save("Elip_{}_combined_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
 
     def save_imgs(self, epoch):
         r, c = 5, 5
@@ -234,10 +234,10 @@ class DCGAN():
                 axs[i,j].imshow(gen_imgs[cnt, :,:,:])
                 axs[i,j].axis('off')
                 cnt += 1
-        fig.savefig("images/four_latent400_sdss_%d.png" % epoch, dpi=300)
+        fig.savefig("images/dense_latent100_sdss_%d.png" % epoch, dpi=300)
         plt.close()
 
 
 if __name__ == '__main__':
-    dcgan = DCGAN(width=256, batch_size=16, height=256, latent=400, dense=256, num_upscales=5, directory="four/")
-    dcgan.train(epochs=50000, save_interval=50)
+    dcgan = DCGAN(width=64, batch_size=64, height=64, latent=100, dense=1024, num_upscales=4, directory="pure_elip/")
+    dcgan.train(epochs=500000, save_interval=200)

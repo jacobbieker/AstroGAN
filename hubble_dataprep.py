@@ -11,15 +11,15 @@ This one takes simple the Hubble Legacy Field Cropped and breaks it into much sm
 
 """
 
-img_size = 256
+img_size = 64
 file_loc = "/home/jacob/Development/AstroGAN/STSCI-H-p1917b-f-20791x19201.png"
-file_loc = "/home/jacob/Development/AstroGAN/heic1502a.tif"
+#file_loc = "/home/jacob/Development/AstroGAN/heic1502a.tif"
 num_photos = 10000
 Image.MAX_IMAGE_PIXELS = 511520000
 
 image = Image.open(file_loc)
 w, h = image.size
-image = image.resize((int(w/10),int(h/10)))
+image = image.resize((int(w/25),int(h/25)))
 w, h = image.size
 
 
@@ -30,4 +30,4 @@ for i in range(num_photos):
     newname = "{}.png".format(i)
     print("Cropping: {},{} -> {},{}".format(x,y, x+img_size, y+img_size))
     image.crop((x,y, x+img_size, y+img_size)) \
-        .save(os.path.join("andromeda/crops", newname), "PNG")
+        .save(os.path.join("h/crops", newname), "PNG")
