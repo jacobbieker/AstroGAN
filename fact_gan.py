@@ -6,6 +6,13 @@ GAN for generating new images from FACT eventfiles
 import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
+import tensorflow as tf
+from keras.backend.tensorflow_backend import set_session
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+#config.gpu_options.visible_device_list = "0"
+#session = tf.Session(config=config)
+set_session(tf.Session(config=config))
 
 from factnn.utils.cross_validate import get_chunk_of_data, get_data_generators
 
@@ -81,7 +88,7 @@ class DCGAN():
         :return:
         """
 
-        train_gen, _, _, _ = get_data_generators(directory=gamma_dir,
+        train_gen, _, _, _ = get_data_generators(directory=gamma_dir, max_elements=50000,
                                                  indicies=(30, 129, 1), rebin=self.img_rows,
                                                  batch_size=self.batch_size, as_channels=True,
                                                  model_type="Energy")
@@ -102,10 +109,10 @@ class DCGAN():
         #model.add(BatchNormalization(momentum=0.8))
         #model.add(Activation("relu"))
         #model.add(UpSampling2D())
-        model.add(Conv2D(256, kernel_size=3, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Activation("relu"))
-        model.add(UpSampling2D())
+        #model.add(Conv2D(256, kernel_size=3, padding="same"))
+        #model.add(BatchNormalization(momentum=0.8))
+        #model.add(Activation("relu"))
+        #model.add(UpSampling2D())
         model.add(Conv2D(128, kernel_size=3, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
@@ -139,10 +146,10 @@ class DCGAN():
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv2D(256, kernel_size=3, strides=1, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dropout(0.25))
+        #model.add(Conv2D(256, kernel_size=3, strides=1, padding="same"))
+        #model.add(BatchNormalization(momentum=0.8))
+        #model.add(LeakyReLU(alpha=0.2))
+        #model.add(Dropout(0.25))
         #model.add(Conv2D(512, kernel_size=3, strides=2, padding="same"))
         #model.add(BatchNormalization(momentum=0.8))
         #model.add(LeakyReLU(alpha=0.2))
@@ -161,6 +168,11 @@ class DCGAN():
         validity = model(img)
 
         return Model(img, validity)
+
+    def process_fact(self, save_que, image_gen):
+        index = np.random.randint(0, len(image_gen))
+        imgs, _ = image_gen[index]
+        save_que.put(imgs)
 
 
     def train(self, epochs, save_interval=50):
@@ -188,51 +200,68 @@ class DCGAN():
             # Select random images from batch_size
             if epoch >= total*num_samples - 1:
                 image_gen.on_epoch_end()
-            imgs, _ = image_gen[epoch % num_samples]
-            # Rescaled between 1 and -1 per batch
-            imgs = 2*(imgs - np.min(imgs))/(np.max(imgs)-np.min(imgs))-1
 
-            # Sample noise and generate a batch of new images
-            noise = np.random.normal(0, 1, (imgs.shape[0], self.latent_dim))
-            gen_imgs = self.generator.predict(noise)
+            n_processes = 10
 
-            # Adversarial ground truths
-            valid = np.ones((imgs.shape[0], 1))
-            fake = np.zeros((imgs.shape[0], 1))
+            manager = Manager()
+            save_que = manager.Queue()
 
-            # Split into combined real and fake of batch_size
-            #all_imgs = np.concatenate((imgs, gen_imgs), axis=0)
-            #all_labels = np.concatenate((valid, fake), axis=0)
+            processes = []
+            for _ in range(n_processes):
+                processes.append(Process(target=self.process_fact, args=(save_que,image_gen)))
 
-            #all_imgs, all_labels = shuffle(all_imgs, all_labels)
+            for p in processes:
+                p.start()
 
-            #imgs = all_imgs[:self.batch_size]
-            #valid = all_labels[:self.batch_size]
-            #gen_imgs = all_imgs[self.batch_size:]
-            #fake = all_labels[self.batch_size:]
-            # Train the discriminator (real classified as ones and generated as zeros)
-            d_loss_real = self.discriminator.train_on_batch(imgs, valid)
-            d_loss_fake = self.discriminator.train_on_batch(gen_imgs, fake)
-            d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
+            for p in processes:
+                p.join()
 
-            # ---------------------
-            #  Train Generator
-            # ---------------------
+            while not save_que.empty():
+                imgs = save_que.get()
+                # Rescaled between 1 and -1 per batch
+                imgs = 2*(imgs - np.min(imgs))/(np.max(imgs)-np.min(imgs))-1
 
-            # Train the generator (wants discriminator to mistake images as real)
-            g_loss = self.combined.train_on_batch(noise, valid)
+                # Sample noise and generate a batch of new images
+                noise = np.random.normal(0, 1, (imgs.shape[0], self.latent_dim))
+                gen_imgs = self.generator.predict(noise)
 
-            # Plot the progress
-            print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
+                # Adversarial ground truths
+                valid = np.ones((imgs.shape[0], 1))
+                fake = np.zeros((imgs.shape[0], 1))
+
+                # Split into combined real and fake of batch_size
+                #all_imgs = np.concatenate((imgs, gen_imgs), axis=0)
+                #all_labels = np.concatenate((valid, fake), axis=0)
+
+                #all_imgs, all_labels = shuffle(all_imgs, all_labels)
+
+                #imgs = all_imgs[:self.batch_size]
+                #valid = all_labels[:self.batch_size]
+                #gen_imgs = all_imgs[self.batch_size:]
+                #fake = all_labels[self.batch_size:]
+                # Train the discriminator (real classified as ones and generated as zeros)
+                d_loss_real = self.discriminator.train_on_batch(imgs, valid)
+                d_loss_fake = self.discriminator.train_on_batch(gen_imgs, fake)
+                d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
+
+                # ---------------------
+                #  Train Generator
+                # ---------------------
+
+                # Train the generator (wants discriminator to mistake images as real)
+                g_loss = self.combined.train_on_batch(noise, valid)
+
+                # Plot the progress
+                print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
 
             # If at save interval => save generated image samples
             if epoch % save_interval == 0:
                 self.save_imgs(epoch)
 
             if epoch % 100 == 0:
-                self.discriminator.save("FACT_{}_discriminator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
-                self.generator.save("FACT_{}_generator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
-                self.combined.save("FACT_{}_combined_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
+                self.discriminator.save("FACT165_{}_discriminator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
+                self.generator.save("FACT165_{}_generator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
+                self.combined.save("FACT165_{}_combined_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
 
     def save_imgs(self, epoch):
         r, c = 5, 5
@@ -246,13 +275,13 @@ class DCGAN():
         cnt = 0
         for i in range(r):
             for j in range(c):
-                axs[i,j].imshow(gen_imgs[cnt].reshape((self.img_rows,self.img_rows)))
+                axs[i,j].imshow(gen_imgs[cnt].reshape((self.img_rows,self.img_rows)), cmap='gray')
                 axs[i,j].axis('off')
                 cnt += 1
-        fig.savefig("images/smallest_fact_%d.png" % epoch, dpi=300)
+        fig.savefig("images/small165_fact_%d.png" % epoch, dpi=300)
         plt.close()
 
 
 if __name__ == '__main__':
-    dcgan = DCGAN(width=32, batch_size=64, height=32, latent=100, dense=512, num_upscales=3, directory="four/")
-    dcgan.train(epochs=50000, save_interval=200)
+    dcgan = DCGAN(width=16, batch_size=64, height=16, latent=100, dense=512, num_upscales=2, directory="four/")
+    dcgan.train(epochs=50000, save_interval=20)
