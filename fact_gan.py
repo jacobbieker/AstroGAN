@@ -170,9 +170,10 @@ class DCGAN():
         return Model(img, validity)
 
     def process_fact(self, save_que, image_gen):
-        index = np.random.randint(0, len(image_gen))
-        imgs, _ = image_gen[index]
-        save_que.put(imgs)
+        while True:
+            index = np.random.randint(0, len(image_gen))
+            imgs, _ = image_gen[index]
+            save_que.put(imgs)
 
 
     def train(self, epochs, save_interval=50):
@@ -190,6 +191,18 @@ class DCGAN():
 
         num_samples = len(image_gen)
         total = 1
+        processes = []
+
+        n_processes = 12
+
+        manager = Manager()
+        save_que = manager.Queue(50)
+
+        for _ in range(n_processes):
+            processes.append(Process(target=self.process_fact, args=(save_que,image_gen)))
+
+        for p in processes:
+            p.start()
 
         for epoch in range(epochs):
 
@@ -198,25 +211,11 @@ class DCGAN():
             # ---------------------
 
             # Select random images from batch_size
-            if epoch >= total*num_samples - 1:
+            if epoch*12 >= total*num_samples - 1:
                 image_gen.on_epoch_end()
 
-            n_processes = 10
-
-            manager = Manager()
-            save_que = manager.Queue()
-
-            processes = []
-            for _ in range(n_processes):
-                processes.append(Process(target=self.process_fact, args=(save_que,image_gen)))
-
-            for p in processes:
-                p.start()
-
-            for p in processes:
-                p.join()
-
-            while not save_que.empty():
+            i = 10
+            while i > 0:
                 imgs = save_que.get()
                 # Rescaled between 1 and -1 per batch
                 imgs = 2*(imgs - np.min(imgs))/(np.max(imgs)-np.min(imgs))-1
@@ -253,6 +252,7 @@ class DCGAN():
 
                 # Plot the progress
                 print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
+                i -= 1
 
             # If at save interval => save generated image samples
             if epoch % save_interval == 0:
@@ -263,6 +263,8 @@ class DCGAN():
                 self.generator.save("FACT165_{}_generator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
                 self.combined.save("FACT165_{}_combined_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
 
+        for p in processes:
+            p.join()
     def save_imgs(self, epoch):
         r, c = 5, 5
         noise = np.random.normal(0, 1, (r * c, self.latent_dim))
@@ -278,10 +280,10 @@ class DCGAN():
                 axs[i,j].imshow(gen_imgs[cnt].reshape((self.img_rows,self.img_rows)), cmap='gray')
                 axs[i,j].axis('off')
                 cnt += 1
-        fig.savefig("images/small165_fact_%d.png" % epoch, dpi=300)
+        fig.savefig("images/small1615_fact_%d.png" % epoch, dpi=300)
         plt.close()
 
 
 if __name__ == '__main__':
-    dcgan = DCGAN(width=16, batch_size=64, height=16, latent=100, dense=512, num_upscales=2, directory="four/")
+    dcgan = DCGAN(width=32, batch_size=64, height=32, latent=100, dense=1024, num_upscales=2, directory="four/")
     dcgan.train(epochs=50000, save_interval=20)

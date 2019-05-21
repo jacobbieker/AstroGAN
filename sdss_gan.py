@@ -175,6 +175,7 @@ class DCGAN():
             # ---------------------
 
             # Select random images from batch_size
+
             imgs = image_gen.next()
             # Rescaled between 1 and -1
             imgs = imgs - 1.
@@ -217,9 +218,9 @@ class DCGAN():
                 self.save_imgs(epoch)
 
             if epoch % 100 == 0:
-                self.discriminator.save("HubbleOne_{}_discriminator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
-                self.generator.save("HubbleOne_{}_generator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
-                self.combined.save("HubbleOne_{}_combined_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
+                self.discriminator.save("AndromedaOne_{}_discriminator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
+                self.generator.save("AndromedaOne_{}_generator_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
+                self.combined.save("AndromedaOne_{}_combined_B{}_Pix{}_Latent{}_D{}_UP{}.h5".format(ran_num, self.batch_size, self.img_rows, self.latent_dim, self.dense, self.num_upscales))
 
     def save_imgs(self, epoch):
         r, c = 5, 5
@@ -236,10 +237,10 @@ class DCGAN():
                 axs[i,j].imshow(gen_imgs[cnt, :,:,:])
                 axs[i,j].axis('off')
                 cnt += 1
-        fig.savefig("images/Hubble128_dense_latent100_sdss_%d.png" % epoch, dpi=300)
+        fig.savefig("images/Andromeda128_dense_latent100_sdss_%d.png" % epoch, dpi=300)
         plt.close()
 
 
 if __name__ == '__main__':
-    dcgan = DCGAN(width=128, batch_size=32, height=128, latent=100, dense=1024, num_upscales=5, directory="small_hubble/")
+    dcgan = DCGAN(width=128, batch_size=32, height=128, latent=100, dense=1024, num_upscales=5, directory="andromeda/")
     dcgan.train(epochs=500000, save_interval=200)
