@@ -19,7 +19,7 @@ from keras.models import load_model
 from sklearn.utils import shuffle
 import numpy as np
 from keras.models import load_model
-
+from PIL import Image
 
 class ImageGenerator:
     def __init__(self, model_name, latent_space, save_dir):
@@ -41,14 +41,28 @@ class ImageGenerator:
 
         return images
 
-#sdss_Spiralgen = ImageGenerator("/home/jacob/Development/AstroGAN/PureSpiral_422_generator_B64_Pix64_Latent100_D1024_UP4.h5", latent_space=100, save_dir="./")
+sdss_Spiralgen = ImageGenerator("/home/jacob/Development/AstroGAN/PureSpiral_422_generator_B64_Pix64_Latent100_D1024_UP4.h5", latent_space=100, save_dir="./")
 sdss_Elipgen = ImageGenerator("/home/jacob/Development/AstroGAN/Elip_176_generator_B64_Pix64_Latent100_D1024_UP4.h5", latent_space=100, save_dir="./")
+hubble_128gen = ImageGenerator("/home/jacob/Development/AstroGAN/HubbleOne_539_generator_B32_Pix128_Latent100_D1024_UP5.h5", latent_space=100, save_dir="./")
 
 print(sdss_Elipgen.gen_image(0,1)[:,:,:].shape)
-plt.imshow(0.5 + 0.5 * sdss_Elipgen.gen_image(0,2.)[:,:,:].reshape((64,64,3)))
+plt.imshow(0.5 + 0.5 * sdss_Elipgen.gen_image(0,1.)[:,:,:].reshape((64,64,3)))
 plt.show()
 
+for i in range(10000):
+    im = Image.fromarray(0.5 + 0.5 * sdss_Elipgen.gen_image(0,1.)[:,:,:].reshape((64,64,3)), "RGB")
+    im.save("gen_sdss_elip/{}.png", "PNG")
 
-hubble_128gen = ImageGenerator("/home/jacob/Development/AstroGAN/HubbleOne_539_generator_B32_Pix128_Latent100_D1024_UP5.h5", latent_space=100, save_dir="./")
-plt.imshow(0.5 + 0.5 * hubble_128gen.gen_image(0,2.)[:,:,:].reshape((128,128,3)))
+for i in range(10000):
+    im = Image.fromarray(0.5 + 0.5 * sdss_Spiralgen.gen_image(0,1.)[:,:,:].reshape((64,64,3)), "RGB")
+    im.save("gen_sdss_spiral/{}.png", "PNG")
+
+for i in range(10000):
+    im = Image.fromarray(0.5 + 0.5 * hubble_128gen.gen_image(0,1.)[:,:,:].reshape((128,128,3)), "RGB")
+    im.save("gen_hubble/{}.png", "PNG")
+
+
+
+plt.imshow(0.5 + 0.5 * hubble_128gen.gen_image(0,1.)[:,:,:].reshape((128,128,3)))
 plt.show()
+
